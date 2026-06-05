@@ -1,6 +1,6 @@
 # MBBSLauncher
 
-**Version:** v1.85 | **Created with Love in Iowa, USA.** | **© 2026 Mark Laudenbach**
+**Version:** v1.85 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -12,7 +12,6 @@
 
 MBBSLauncher is a Windows application that provides easy access to tools and utilities for **The Major BBS Version 10** sysops. Inspired by the classic DOS-era Major BBS launcher interface, this modern version brings the nostalgic feel of the original while adding contemporary features and usability improvements.
 
-**📺 Watch the Demo Video:** https://www.youtube.com/watch?v=RJnNRqCFjWs
 
 ---
 
