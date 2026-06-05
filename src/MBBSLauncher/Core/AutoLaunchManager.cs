@@ -1,6 +1,6 @@
 // MBBSLauncher - Auto-Launch Manager
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Core/AutoLaunchManager.cs
 // Version: v1.55
@@ -274,8 +274,10 @@ namespace MBBSLauncher.Core
             }
 
             // Check if the process is already running before launching (v1.55)
+            // Skip check for .bat files - they run under cmd.exe, not by script name
+            bool isBatch = program.Path.EndsWith(".bat", StringComparison.OrdinalIgnoreCase);
             string processName = Path.GetFileNameWithoutExtension(program.Path);
-            if (!string.IsNullOrWhiteSpace(processName) && ProcessHelper.IsProcessRunning(processName))
+            if (!isBatch && !string.IsNullOrWhiteSpace(processName) && ProcessHelper.IsProcessRunning(processName))
             {
                 LogEvent($"Skipping auto-launch of {program.Name} - process '{processName}' is already running");
                 ProgramLaunched?.Invoke(this, new AutoLaunchEventArgs

@@ -231,7 +231,7 @@ namespace MBBSLauncher.Forms
         {
             using (var dialog = new OpenFileDialog())
             {
-                dialog.Filter = "Executable Files (*.exe)|*.exe|All Files (*.*)|*.*";
+                dialog.Filter = "Programs (*.exe;*.bat)|*.exe;*.bat|Executable Files (*.exe)|*.exe|Batch Files (*.bat)|*.bat|All Files (*.*)|*.*";
                 dialog.Title = "Select Program";
 
                 if (!string.IsNullOrEmpty(_pathTextBox?.Text))

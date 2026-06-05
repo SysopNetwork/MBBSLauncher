@@ -1,9 +1,9 @@
 // MBBSLauncher - Help Form
-// Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// Created by Mark Laudenbach with Love in Iowa, USA.
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Forms/HelpForm.cs
-// Version: v1.60
+// Version: v1.80
 //
 // Change History:
 // 26.01.12.1 - Initial creation
@@ -96,8 +96,8 @@ namespace MBBSLauncher.Forms
                     MBBS LAUNCHER {Program.APP_VERSION} - HELP & DOCUMENTATION
 ================================================================================
 
-  Created by Mark Laudenbach with Love in Iowa
-  https://github.com/laudenbachm/MBBS-Launcher
+  Created by Mark Laudenbach with Love in Iowa, USA.
+  https://github.com/SysopNetwork/MBBSLauncher
 
 --------------------------------------------------------------------------------
                               QUICK START
@@ -143,10 +143,7 @@ namespace MBBSLauncher.Forms
 
   - Hover over any option to see a visual highlight
   - Click on any option number to launch it
-  - Click on the URLs in the upper-right to visit:
-    * themajorbbs.com - The Major BBS website
-    * bbs.themajorbbs.com - Demo BBS (telnet)
-    * Discord community invite
+  - Click on any option number to launch it
 
 --------------------------------------------------------------------------------
                               SYSTEM TRAY
@@ -221,11 +218,9 @@ namespace MBBSLauncher.Forms
                               RESOURCES
 --------------------------------------------------------------------------------
 
-  Website:     https://themajorbbs.com
-  Demo BBS:    telnet://bbs.themajorbbs.com
-  Discord:     https://discord.gg/VhRk9xpq30
-  GitHub:      https://github.com/laudenbachm/MBBS-Launcher
-  Module SDK:  https://github.com/TheMajorBBS/MBBS-v10-module-SDK
+  Sysop Network Discord:  https://discord.gg/dpzquuNVmb
+  GitHub:                 https://github.com/SysopNetwork/MBBSLauncher
+  Module SDK:             https://github.com/TheMajorBBS/MBBS-v10-module-SDK
 
 --------------------------------------------------------------------------------
                            TROUBLESHOOTING
@@ -251,7 +246,7 @@ namespace MBBSLauncher.Forms
 
   Thank you for using MBBSLauncher!
 
-  For support, questions, or feedback, please visit our Discord or GitHub.
+  For support, questions, or feedback, join us on the Sysop Network Discord!
 
 ================================================================================
 ";

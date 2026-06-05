@@ -1,9 +1,9 @@
 // MBBSLauncher - Program Entry Point
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Program.cs
-// Version: v1.70
+// Version: v1.85
 //
 // Change History:
 // 26.01.07.1 - 06:00PM - Initial creation
@@ -15,6 +15,8 @@
 // 26.02.18.1 - Bumped version to v1.55 - Auto Launch skips already-running processes
 // 26.02.19.1 - Bumped version to v1.60 - UI improvements, wording corrections, layout fixes
 // 26.02.19.2 - Bumped version to v1.70 - Bug fixes + App Manager opacity slider
+// 26.06.04.1 - Bumped version to v1.80 - Cleanup delay, double-restore fix, countdown overlap fix, code fixes
+// 26.06.04.2 - Bumped version to v1.85 - Bug fixes from v1.80 code review
 
 using System;
 using System.IO;
@@ -26,16 +28,12 @@ namespace MBBSLauncher
 {
     internal static class Program
     {
-        public const string APP_VERSION = "v1.70";
+        public const string APP_VERSION = "v1.85";
         public const string APP_NAME = "MBBSLauncher";
         public const string AUTHOR = "Mark Laudenbach";
-        public const string TAGLINE = "Created with Love in Iowa";
-        public const string GITHUB_URL = "https://github.com/laudenbachm/MBBS-Launcher";
-
-        // URLs displayed on the launcher screen
-        public const string WEBSITE_URL = "https://themajorbbs.com";
-        public const string DEMO_BBS_URL = "telnet://bbs.themajorbbs.com";
-        public const string DISCORD_URL = "https://discord.gg/VhRk9xpq30";
+        public const string TAGLINE = "Created with Love in Iowa, USA.";
+        public const string GITHUB_URL = "https://github.com/SysopNetwork/MBBSLauncher";
+        public const string DISCORD_URL = "https://discord.gg/dpzquuNVmb";
 
         /// <summary>
         /// The main entry point for the application.

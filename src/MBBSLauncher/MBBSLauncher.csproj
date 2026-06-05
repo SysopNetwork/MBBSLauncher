@@ -11,12 +11,12 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
     <!-- Version Information -->
-    <Version>1.70.0</Version>
-    <AssemblyVersion>1.70.0.0</AssemblyVersion>
-    <FileVersion>1.70.0.0</FileVersion>
+    <Version>1.85.0</Version>
+    <AssemblyVersion>1.85.0.0</AssemblyVersion>
+    <FileVersion>1.85.0.0</FileVersion>
     <Product>MBBSLauncher</Product>
     <Company>Mark Laudenbach</Company>
-    <Copyright>Copyright © 2026 Mark Laudenbach - Created with Love in Iowa</Copyright>
+    <Copyright>Copyright © 2026 Mark Laudenbach - Created with Love in Iowa, USA.</Copyright>
     <Description>A launcher application for The Major BBS Version 10</Description>
 
     <!-- 32-bit configuration -->

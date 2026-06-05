@@ -1,123 +1,26 @@
-# .NET build outputs
-bin/
-obj/
-*.user
-*.suo
-*.cache
-*.dll
-*.exe
-*.pdb
-*.ilk
-*.meta
-*.obj
-*.iobj
-*.pch
-*.ipdb
-*.pgc
-*.pgd
-*.rsp
-*.sbr
-*.tlb
-*.tli
-*.tlh
-*.tmp
-*.tmp_proj
-*.log
-*.vspscc
-*.vssscc
-.builds
-*.pidb
-*.svclog
-*.scc
+# Build output
+**/bin/
+**/obj/
 
 # Visual Studio
 .vs/
-*.userprefs
-*.usertasks
-project.lock.json
-project.fragment.lock.json
-artifacts/
-
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-
-# Build output folders
-builds/
-
-# .NET installation scripts
-dotnet-install.sh
-dotnet-install.ps1
-
-# Claude Code workspace
-.claude/
-
-# NuGet
-*.nupkg
-*.snupkg
-**/packages/*
-!**/packages/build/
-*.nuget.props
-*.nuget.targets
-project.lock.json
-project.fragment.lock.json
-
-# Publish outputs
-publish/
-PublishProfiles/
-
-# User-specific files
-*.rsuser
-*.suo
 *.user
+*.suo
 *.userosscache
 *.sln.docstates
 
-# Configuration files (keep templates, ignore user configs)
-MBBSLauncher.ini
+# Release builds (uploaded as GitHub release assets, not committed)
+RELEASES/
 
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+# Reference source — do not commit
+OLD CLAUDE PROJECT/
 
-# Folder config file
-Desktop.ini
+# Personal notes
+Marks Notes/
 
-# Recycle Bin
-$RECYCLE.BIN/
+# Fireworks/design tool source files
+*.fw.png
 
-# VS Code
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# JetBrains Rider
-.idea/
-*.sln.iml
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Backup files
-*.bak
-*~
-
-# Temporary files
-*.tmp
-*.temp
+# AI tool guidance and local settings (local only)
+CLAUDE.md
+.claude/

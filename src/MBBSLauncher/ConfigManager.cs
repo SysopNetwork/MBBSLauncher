@@ -1,9 +1,9 @@
 // MBBSLauncher - Configuration Manager
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: ConfigManager.cs
-// Version: v1.60
+// Version: v1.80
 //
 // Change History:
 // 26.01.07.1 - 06:00PM - Initial creation
@@ -14,6 +14,7 @@
 // 26.02.11.1 - v1.6: Added GetBool/GetInt helper methods for App Manager
 // 26.02.19.1 - v1.60: Default config: AutoLaunchAtStartup and ShowTrayIcon enabled by default
 // 26.02.19.2 - v1.70: Removed Ghost3 entries from default Settings (replaced by AutoLaunch in v1.5)
+// 26.06.04.1 - v1.80: Added BBSStopDelay default (0 = immediate restore, >0 = seconds to wait after BBS stops)
 
 using System;
 using System.Collections.Generic;
@@ -164,7 +165,8 @@ namespace MBBSLauncher
                 { "EscMinimizesToTray", "false" }, // ESC minimizes to taskbar by default, true = minimize to tray
                 { "AutoStartBBS", "false" },       // OFF by default - auto-launch BBS when launcher starts
                 { "AutoStartDelay", "5" },         // Seconds to wait before auto-starting (allows cancel)
-                { "QuietMode", "false" }           // Minimize to tray after auto-start
+                { "QuietMode", "false" },          // Minimize to tray after auto-start
+                { "BBSStopDelay", "0" }            // Seconds to wait after BBS stops before popping up (0 = immediate)
             };
 
             // Programs section

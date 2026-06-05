@@ -1,12 +1,14 @@
 // MBBSLauncher - Single Instance Manager
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Core/SingleInstanceManager.cs
-// Version: v1.5
+// Version: v1.85
 //
 // Change History:
 // 26.02.06.1 - Initial creation for v1.5
+// 26.06.04.1 - v1.85 - FindExistingWindow now uses EnumWindows prefix scan instead of
+//              hard-coded per-version title strings; also finds hidden/tray windows
 
 using System;
 using System.Diagnostics;
@@ -27,8 +29,13 @@ namespace MBBSLauncher.Core
 
         #region Win32 API Imports
 
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -117,37 +124,29 @@ namespace MBBSLauncher.Core
         }
 
         /// <summary>
-        /// Finds the existing launcher window handle.
-        /// Searches for windows with titles starting with "MBBSLauncher".
+        /// Finds the existing launcher window handle by scanning all top-level windows
+        /// (including hidden/tray windows) for a title that starts with "MBBSLauncher".
+        /// This is version-agnostic so it works across all releases without hardcoded title strings.
         /// </summary>
         private static IntPtr FindExistingWindow()
         {
-            // Try to find by exact version title first
-            IntPtr hWnd = FindWindow(null, $"{WINDOW_TITLE_PREFIX} v1.5. Created with Love \u2764 by Mark Laudenbach in Iowa");
+            IntPtr found = IntPtr.Zero;
 
-            if (hWnd != IntPtr.Zero)
-                return hWnd;
-
-            // Try v1.20 title (in case of mixed versions running)
-            hWnd = FindWindow(null, $"{WINDOW_TITLE_PREFIX} v1.20. Created with Love \u2764 by Mark Laudenbach in Iowa");
-
-            if (hWnd != IntPtr.Zero)
-                return hWnd;
-
-            // Try finding any MBBSLauncher process and get its main window
-            var processes = Process.GetProcessesByName("MBBSLauncher");
-            if (processes.Length > 0)
+            EnumWindows((hWnd, lParam) =>
             {
-                foreach (var process in processes)
+                var sb = new System.Text.StringBuilder(256);
+                if (GetWindowText(hWnd, sb, 256) > 0)
                 {
-                    if (process.MainWindowHandle != IntPtr.Zero)
+                    if (sb.ToString().StartsWith(WINDOW_TITLE_PREFIX, StringComparison.OrdinalIgnoreCase))
                     {
-                        return process.MainWindowHandle;
+                        found = hWnd;
+                        return false; // stop enumeration
                     }
                 }
-            }
+                return true; // continue enumeration
+            }, IntPtr.Zero);
 
-            return IntPtr.Zero;
+            return found;
         }
 
         /// <summary>

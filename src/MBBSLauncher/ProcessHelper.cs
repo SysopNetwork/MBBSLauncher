@@ -1,6 +1,6 @@
 // MBBSLauncher - Process Management Helper
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: ProcessHelper.cs
 // Version: v1.00

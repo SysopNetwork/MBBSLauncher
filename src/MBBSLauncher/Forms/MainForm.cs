@@ -1,9 +1,9 @@
 // MBBSLauncher - Main Form
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Forms/MainForm.cs
-// Version: v1.60
+// Version: v1.85
 //
 // Change History:
 // 26.01.07.1 - 06:00PM - Initial creation
@@ -18,6 +18,17 @@
 // 26.02.19.1 - v1.60 - Neutral wording for BBS stop tray notification
 // 26.02.19.2 - v1.70 - Fix paint error on close: Bitmap copy prevents stream-disposal crash
 // 26.02.19.3 - v1.70 - Red heart painted in Windows title bar via WM_NCPAINT
+// 26.06.04.1 - v1.80 - Removed double-restore: Task.Run watcher no longer calls RestoreFromTray
+//                      (AppManager BBSCrashed event is the single path for restoring the launcher)
+// 26.06.04.2 - v1.80 - Added CancellationToken to wgserver watcher Task.Run so it exits cleanly
+//                      when the form is closed while monitoring is in progress
+// 26.06.04.3 - v1.80 - Fixed Ghost3/auto-launch countdown overlap: both used the same bottom Y
+//                      position and painted over each other. Ghost3 now stacks above auto-launch rows.
+// 26.06.04.4 - v1.85 - Fixed Ghost3/AutoStart overlap: DrawGhost3Countdown now returns its pixel
+//                      height so DrawAutoStartCountdown stacks correctly above it
+// 26.06.04.5 - v1.85 - LaunchModulesEditor Task.Run now uses _launchMonitorCts and IsDisposed
+//                      guard to prevent ObjectDisposedException when form closes while editor runs
+// 26.06.04.6 - v1.85 - Removed dead LaunchURL() method (no callers since URL zones removed in v1.80)
 
 using System;
 using System.Drawing;
@@ -68,6 +79,9 @@ namespace MBBSLauncher.Forms
 
         // Track window state for restore detection
         private FormWindowState _previousWindowState = FormWindowState.Normal;
+
+        // Cancellation for the background wgserver watcher task
+        private System.Threading.CancellationTokenSource? _launchMonitorCts;
 
         public MainForm()
         {
@@ -132,7 +146,7 @@ namespace MBBSLauncher.Forms
 
         private void InitializeCustomComponents()
         {
-            this.Text = $"{Program.APP_NAME} {Program.APP_VERSION}. Created with Love \u2764 by {Program.AUTHOR} in Iowa";
+            this.Text = $"{Program.APP_NAME} {Program.APP_VERSION}. Created with Love \u2764 by {Program.AUTHOR} in Iowa, USA.";
             this.Size = new Size(960, 540); // 16:9 aspect ratio
             this.MinimumSize = new Size(640, 360); // Minimum 16:9
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -335,8 +349,7 @@ namespace MBBSLauncher.Forms
 
             if (minimizeToTray && _trayIcon != null && _trayIcon.Visible)
             {
-                this.ShowInTaskbar = false;
-                this.Hide();
+                this.WindowState = FormWindowState.Minimized;
 
                 // Show balloon tip on first minimize
                 if (_isFirstMinimizeToTray)
@@ -520,6 +533,8 @@ namespace MBBSLauncher.Forms
 
         private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
         {
+            // Cancel any background process-watcher task so it doesn't Invoke on a disposed form
+            _launchMonitorCts?.Cancel();
             SaveWindowSettings();
         }
 
@@ -836,174 +851,146 @@ namespace MBBSLauncher.Forms
                 e.Graphics.DrawImage(_backgroundImage, 0, 0, this.ClientSize.Width, this.ClientSize.Height);
             }
 
-            // Draw auto-start countdown message
-            if (_autoStartCountdown > 0)
-            {
-                DrawAutoStartCountdown(e.Graphics);
-            }
+            // Stack countdowns from the bottom up so they never overlap.
+            // Each method returns the total pixel height it consumed; the next caller
+            // passes that as its bottomOffset so it draws above the previous block.
+            int bottomOffset = 0;
 
-            // Draw Ghost3 countdown message
-            if (_ghost3Countdown > 0)
-            {
-                DrawGhost3Countdown(e.Graphics);
-            }
-
-            // Draw auto-launch countdowns (v1.5 feature)
             if (_autoLaunchCountdowns.Count > 0)
-            {
-                DrawAutoLaunchCountdowns(e.Graphics);
-            }
+                bottomOffset = DrawAutoLaunchCountdowns(e.Graphics);
+
+            if (_ghost3Countdown > 0)
+                bottomOffset += DrawGhost3Countdown(e.Graphics, bottomOffset);
+
+            if (_autoStartCountdown > 0)
+                DrawAutoStartCountdown(e.Graphics, bottomOffset);
         }
 
         /// <summary>
-        /// Draws the auto-start countdown message at the bottom of the screen.
+        /// Draws the auto-start countdown message above any existing bottom-anchored banners.
+        /// bottomOffset is the total pixel height already consumed by lower banners.
         /// </summary>
-        private void DrawAutoStartCountdown(Graphics g)
+        private void DrawAutoStartCountdown(Graphics g, int bottomOffset = 0)
         {
             string message = $"Auto-starting BBS in {_autoStartCountdown} second{(_autoStartCountdown != 1 ? "s" : "")}... Press any key or click to cancel";
 
-            // Create font for countdown message
             using (Font font = new Font("Consolas", 12f, FontStyle.Bold))
             {
                 SizeF textSize = g.MeasureString(message, font);
 
-                // Position at bottom center of window
                 float x = (this.ClientSize.Width - textSize.Width) / 2;
-                float y = this.ClientSize.Height - textSize.Height - 20;
+                float y = this.ClientSize.Height - textSize.Height - 20 - bottomOffset;
 
-                // Draw background rectangle for visibility
                 RectangleF bgRect = new RectangleF(x - 10, y - 5, textSize.Width + 20, textSize.Height + 10);
                 using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 0, 0, 128)))
-                {
                     g.FillRectangle(bgBrush, bgRect);
-                }
 
-                // Draw border
                 using (Pen borderPen = new Pen(Color.FromArgb(255, 0, 255, 255), 2))
-                {
                     g.DrawRectangle(borderPen, bgRect.X, bgRect.Y, bgRect.Width, bgRect.Height);
-                }
 
-                // Draw text
                 using (SolidBrush textBrush = new SolidBrush(Color.White))
-                {
                     g.DrawString(message, font, textBrush, x, y);
-                }
             }
         }
 
         /// <summary>
-        /// Draws the Ghost3 countdown message at the bottom of the screen.
+        /// Draws the Ghost3 countdown message above any existing bottom-anchored banners.
+        /// bottomOffset is the total pixel height already consumed by lower banners.
+        /// Returns the pixel height consumed by this banner so callers can stack further up.
         /// </summary>
-        private void DrawGhost3Countdown(Graphics g)
+        private int DrawGhost3Countdown(Graphics g, int bottomOffset = 0)
         {
             string message = $"Launching Ghost3 in {_ghost3Countdown} second{(_ghost3Countdown != 1 ? "s" : "")}... Press any key or click to cancel";
 
-            // Create font for countdown message
             using (Font font = new Font("Consolas", 12f, FontStyle.Bold))
             {
                 SizeF textSize = g.MeasureString(message, font);
 
-                // Position at bottom center of window
                 float x = (this.ClientSize.Width - textSize.Width) / 2;
-                float y = this.ClientSize.Height - textSize.Height - 20;
+                float y = this.ClientSize.Height - textSize.Height - 20 - bottomOffset;
 
-                // Draw background rectangle for visibility (use green theme for Ghost3)
                 RectangleF bgRect = new RectangleF(x - 10, y - 5, textSize.Width + 20, textSize.Height + 10);
                 using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 0, 100, 0)))
-                {
                     g.FillRectangle(bgBrush, bgRect);
-                }
 
-                // Draw border (green theme)
                 using (Pen borderPen = new Pen(Color.FromArgb(255, 0, 255, 0), 2))
-                {
                     g.DrawRectangle(borderPen, bgRect.X, bgRect.Y, bgRect.Width, bgRect.Height);
-                }
 
-                // Draw text
                 using (SolidBrush textBrush = new SolidBrush(Color.White))
-                {
                     g.DrawString(message, font, textBrush, x, y);
-                }
+
+                // Return height consumed: text + bgRect padding (10) + bottom margin (20)
+                return (int)(textSize.Height + 30);
             }
         }
 
         /// <summary>
-        /// Draws the auto-launch countdown messages at the bottom of the screen (v1.5 feature).
+        /// Draws auto-launch countdown banners stacked from the bottom of the screen.
+        /// Returns the total pixel height consumed so callers above can stack further up.
         /// </summary>
-        private void DrawAutoLaunchCountdowns(Graphics g)
+        private int DrawAutoLaunchCountdowns(Graphics g)
         {
-            if (_autoLaunchCountdowns.Count == 0) return;
+            if (_autoLaunchCountdowns.Count == 0) return 0;
 
-            // Get all programs with their current countdowns
             var programs = _autoLaunchManager?.GetAllPrograms();
-            if (programs == null) return;
+            if (programs == null) return 0;
 
             int lineNumber = 0;
+            int totalHeight = 0;
+
             using (Font font = new Font("Consolas", 11f, FontStyle.Bold))
             {
+                // Measure row height using a representative string
+                SizeF sampleSize = g.MeasureString("X", font);
+                float rowH = sampleSize.Height + 15;
+
                 foreach (var kvp in _autoLaunchCountdowns)
                 {
-                    string programId = kvp.Key;
-                    int secondsRemaining = kvp.Value;
-
-                    // Find the program by ID
-                    var program = programs.Find(p => p.Id == programId);
+                    var program = programs.Find(p => p.Id == kvp.Key);
                     if (program == null) continue;
 
-                    string message = $"Launching {program.Name} in {secondsRemaining} second{(secondsRemaining != 1 ? "s" : "")}...";
-
+                    string message = $"Launching {program.Name} in {kvp.Value} second{(kvp.Value != 1 ? "s" : "")}...";
                     SizeF textSize = g.MeasureString(message, font);
 
-                    // Position at bottom center, stacked if multiple
                     float x = (this.ClientSize.Width - textSize.Width) / 2;
-                    float y = this.ClientSize.Height - textSize.Height - 20 - (lineNumber * (textSize.Height + 15));
+                    float y = this.ClientSize.Height - textSize.Height - 20 - (lineNumber * rowH);
 
-                    // Draw background rectangle (purple theme for auto-launch)
                     RectangleF bgRect = new RectangleF(x - 10, y - 5, textSize.Width + 20, textSize.Height + 10);
                     using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(220, 75, 0, 130)))
-                    {
                         g.FillRectangle(bgBrush, bgRect);
-                    }
 
-                    // Draw border
                     using (Pen borderPen = new Pen(Color.FromArgb(255, 138, 43, 226), 2))
-                    {
                         g.DrawRectangle(borderPen, bgRect.X, bgRect.Y, bgRect.Width, bgRect.Height);
-                    }
 
-                    // Draw text
                     using (SolidBrush textBrush = new SolidBrush(Color.White))
-                    {
                         g.DrawString(message, font, textBrush, x, y);
-                    }
 
                     lineNumber++;
                 }
 
-                // Add cancel instruction at the top if there are countdowns
+                // Cancel instruction sits above the countdown rows
                 if (lineNumber > 0)
                 {
                     string cancelMsg = "Press any key or click to cancel all";
                     SizeF textSize = g.MeasureString(cancelMsg, font);
                     float x = (this.ClientSize.Width - textSize.Width) / 2;
-                    float y = this.ClientSize.Height - textSize.Height - 20 - (lineNumber * (textSize.Height + 15));
+                    float y = this.ClientSize.Height - textSize.Height - 20 - (lineNumber * rowH);
 
-                    // Draw semi-transparent background
                     RectangleF bgRect = new RectangleF(x - 10, y - 5, textSize.Width + 20, textSize.Height + 10);
                     using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(180, 0, 0, 0)))
-                    {
                         g.FillRectangle(bgBrush, bgRect);
-                    }
 
-                    // Draw text
                     using (SolidBrush textBrush = new SolidBrush(Color.Yellow))
-                    {
                         g.DrawString(cancelMsg, font, textBrush, x, y);
-                    }
+
+                    lineNumber++; // count the cancel row too
                 }
+
+                // Return total pixel height consumed so Ghost3/auto-start can stack above
+                totalHeight = (int)((lineNumber * rowH) + 20);
             }
+
+            return totalHeight;
         }
 
         private void MainForm_Resize(object? sender, EventArgs e)
@@ -1070,26 +1057,6 @@ namespace MBBSLauncher.Forms
             float x = e.X / (float)this.ClientSize.Width;
             float y = e.Y / (float)this.ClientSize.Height;
 
-            // Check for URL clicks first (upper right corner)
-            // Website: themajorbbs.com
-            if (x >= 0.635f && x <= 0.990f && y >= 0.154f && y <= 0.191f)
-            {
-                LaunchURL(Program.WEBSITE_URL);
-                return;
-            }
-            // Demo BBS: bbs.themajorbbs.com
-            else if (x >= 0.635f && x <= 0.997f && y >= 0.204f && y <= 0.241f)
-            {
-                LaunchURL(Program.DEMO_BBS_URL);
-                return;
-            }
-            // Discord: discord.gg/VhRk9xpq30
-            else if (x >= 0.635f && x <= 1.003f && y >= 0.247f && y <= 0.284f)
-            {
-                LaunchURL(Program.DISCORD_URL);
-                return;
-            }
-
             // Define clickable regions based on background image (1440x810 reference)
             // Left column: Options 1, 2, 3, 4
             if (x >= 0.038f && x <= 0.101f) // x: 54-145 pixels
@@ -1133,23 +1100,10 @@ namespace MBBSLauncher.Forms
 
         /// <summary>
         /// Determines which option (if any) is at the given normalized position.
-        /// Returns: -1 = no option, 0-99 = option number, -2 = website, -3 = demo BBS, -4 = Discord
+        /// Returns: -1 = no option, 0-99 = option number
         /// </summary>
         private int GetOptionAtPosition(float x, float y)
         {
-            // Check for URL links (upper right corner)
-            // Website: themajorbbs.com
-            if (x >= 0.635f && x <= 0.990f && y >= 0.154f && y <= 0.191f)
-                return -2; // Website URL
-
-            // Demo BBS: bbs.themajorbbs.com
-            if (x >= 0.635f && x <= 0.997f && y >= 0.204f && y <= 0.241f)
-                return -3; // Demo BBS URL
-
-            // Discord: discord.gg/VhRk9xpq30
-            if (x >= 0.635f && x <= 1.003f && y >= 0.247f && y <= 0.284f)
-                return -4; // Discord URL
-
             // Left column: Options 1, 2, 3, 4
             if (x >= 0.038f && x <= 0.101f)
             {
@@ -1186,11 +1140,6 @@ namespace MBBSLauncher.Forms
         {
             switch (option)
             {
-                // URL links
-                case -2: return new RectangleF(0.635f, 0.154f, 0.355f, 0.037f);
-                case -3: return new RectangleF(0.635f, 0.204f, 0.362f, 0.037f);
-                case -4: return new RectangleF(0.635f, 0.247f, 0.368f, 0.037f);
-
                 // Left column
                 case 1: return new RectangleF(0.038f, 0.389f, 0.063f, 0.080f);
                 case 2: return new RectangleF(0.038f, 0.519f, 0.063f, 0.080f);
@@ -1476,55 +1425,70 @@ namespace MBBSLauncher.Forms
                     });
                 }
 
-                // Wait for the process to exit, then show the launcher again
+                // Watch for the process to exit and clear the tray status.
+                // NOTE: AppManager's BBSCrashed event (with its optional delay) is the single
+                // path that restores the main launcher window. This task only clears the tray.
+                _launchMonitorCts?.Cancel();
+                _launchMonitorCts = new System.Threading.CancellationTokenSource();
+                var token = _launchMonitorCts.Token;
+
                 System.Threading.Tasks.Task.Run(() =>
                 {
-                    // For wgsappgo (Option 5), monitor both wgsappgo and wgserver
-                    if (processName.Equals("wgsappgo", StringComparison.OrdinalIgnoreCase))
+                    try
                     {
-                        // Wait for wgsappgo to exit
-                        launchedProcess.WaitForExit();
-
-                        // Then wait for wgserver to exit (if it's running)
-                        System.Threading.Thread.Sleep(500); // Brief delay to detect wgserver
-
-                        // Update tray to track wgserver
-                        this.Invoke((MethodInvoker)delegate
+                        // For wgsappgo (Option 5), monitor both wgsappgo and wgserver
+                        if (processName.Equals("wgsappgo", StringComparison.OrdinalIgnoreCase))
                         {
-                            var serverProcess = ProcessHelper.GetProcess("wgserver");
-                            if (serverProcess != null)
-                            {
-                                UpdateTrayStatus("WGServer", serverProcess);
-                            }
-                        });
+                            // Wait for wgsappgo launcher to exit
+                            launchedProcess.WaitForExit();
+                            if (token.IsCancellationRequested) return;
 
-                        while (ProcessHelper.IsProcessRunning("wgserver"))
-                        {
-                            var serverProcess = ProcessHelper.GetProcess("wgserver");
-                            if (serverProcess != null)
+                            // Brief pause to let wgserver spin up, then track it in the tray
+                            System.Threading.Thread.Sleep(500);
+                            if (token.IsCancellationRequested) return;
+
+                            this.Invoke((MethodInvoker)delegate
                             {
-                                serverProcess.WaitForExit();
-                            }
-                            else
+                                if (!this.IsDisposed)
+                                {
+                                    var serverProcess = ProcessHelper.GetProcess("wgserver");
+                                    if (serverProcess != null)
+                                        UpdateTrayStatus("WGServer", serverProcess);
+                                }
+                            });
+
+                            // Wait for wgserver itself to exit
+                            while (!token.IsCancellationRequested && ProcessHelper.IsProcessRunning("wgserver"))
                             {
-                                break;
+                                var serverProcess = ProcessHelper.GetProcess("wgserver");
+                                if (serverProcess != null)
+                                    serverProcess.WaitForExit();
+                                else
+                                    break;
                             }
                         }
-                    }
-                    else
-                    {
-                        launchedProcess.WaitForExit();
-                    }
+                        else
+                        {
+                            launchedProcess.WaitForExit();
+                        }
 
-                    // Clear tray status and show launcher again
-                    this.Invoke((MethodInvoker)delegate
+                        if (token.IsCancellationRequested) return;
+
+                        // Clear tray status only — AppManager handles the restore via BBSCrashed event
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            if (!this.IsDisposed)
+                            {
+                                UpdateTrayStatus(null, null);
+                                this.Invalidate();
+                            }
+                        });
+                    }
+                    catch (Exception)
                     {
-                        UpdateTrayStatus(null, null);
-                        RestoreFromTray();
-                        this.Invalidate();
-                        this.Refresh();
-                    });
-                });
+                        // Form may have been disposed — nothing to do
+                    }
+                }, token);
             }
         }
 
@@ -1600,42 +1564,34 @@ namespace MBBSLauncher.Forms
                 // Minimize to tray
                 MinimizeToTray();
 
-                // Wait for exit and restore
+                // Watch for exit and restore — reuse the shared monitor CTS so FormClosing
+                // can cancel this task the same way it cancels the wgserver watcher.
+                _launchMonitorCts?.Cancel();
+                _launchMonitorCts = new System.Threading.CancellationTokenSource();
+                var token = _launchMonitorCts.Token;
+
                 System.Threading.Tasks.Task.Run(() =>
                 {
-                    launchedProcess.WaitForExit();
-
-                    this.Invoke((MethodInvoker)delegate
+                    try
                     {
-                        UpdateTrayStatus(null, null);
-                        RestoreFromTray();
-                        this.Invalidate();
-                        this.Refresh();
-                    });
-                });
-            }
-        }
-
-        private void LaunchURL(string url)
-        {
-            try
-            {
-                // Use Process.Start to launch the URL
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                };
-                System.Diagnostics.Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Failed to open URL:\n{url}\n\nError: {ex.Message}",
-                    "Error Opening URL",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                Program.LogError("LaunchURL", ex);
+                        launchedProcess.WaitForExit();
+                        if (token.IsCancellationRequested || this.IsDisposed) return;
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            if (!this.IsDisposed)
+                            {
+                                UpdateTrayStatus(null, null);
+                                RestoreFromTray();
+                                this.Invalidate();
+                                this.Refresh();
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.LogError("LaunchModulesEditor.WaitForExit", ex);
+                    }
+                }, token);
             }
         }
 

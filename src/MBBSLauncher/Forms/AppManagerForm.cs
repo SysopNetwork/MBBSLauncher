@@ -1,9 +1,9 @@
 // MBBSLauncher - App Manager Form
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Forms/AppManagerForm.cs
-// Version: v1.70
+// Version: v1.85
 //
 // Change History:
 // 26.02.11.1 - Initial creation for v1.6 Beta
@@ -19,6 +19,20 @@
 //                      Root cause: 110px status label + Consolas 11pt + "Launch 0:30" = wrap at space.
 //                      Fix: widen form to 310px, increase statusW base from 110 to 140.
 // 26.02.19.7 - v1.70 - Fix BBS showing Crashed instead of Stopped on clean shutdown
+// 26.06.04.1 - v1.80 - BBSStopDelay: wait N seconds (from [Settings] BBSStopDelay) before restoring
+//                      launcher after BBS stops. Cancelled automatically if BBS restarts during the
+//                      window. BBSStopDelay=0 restores immediately (default, backwards compatible).
+// 26.06.04.2 - v1.80 - Removed dead _bbsWasRunning field (set every tick, never read)
+// 26.06.04.3 - v1.80 - Fixed font leak: reuse class-level Font objects instead of creating new Font
+//                      per label on every UpdateDisplay call (prior code leaked GDI handles each call)
+// 26.06.04.4 - v1.80 - Pause _updateTimer when form is hidden; resume on Show to avoid firing
+//                      BBSStopped while user has intentionally hidden the App Manager window
+// 26.06.04.5 - v1.85 - Fix: OnFormClosing user-close path now calls CancelBBSStopDelay() so a running
+//                      delay timer cannot fire BBSCrashed after the user deliberately hides the window
+// 26.06.04.6 - v1.85 - _updateTimer now runs continuously regardless of form visibility so the launcher
+//                      always restores when the BBS stops (even when App Manager is hidden)
+// 26.06.04.7 - v1.85 - Fixed cancel-button font leak: _cancelButtonFont is now a class-level field
+//                      so it is reused across UpdateCancelButton calls instead of being leaked each time
 
 using System;
 using System.Collections.Generic;
@@ -67,8 +81,13 @@ namespace MBBSLauncher.Forms
         private bool _initialized = false; // Guard to prevent SaveSettings during init
         private int _lastContentHeight = 130; // Y position after last program row, used to place cancel button
 
-        // BBS monitoring
-        private bool _bbsWasRunning = false;
+        // Shared fonts — created once, reused to avoid GDI handle leaks
+        private readonly Font _boldFont = new Font("Consolas", 11, FontStyle.Bold);
+        private readonly Font _regularFont = new Font("Consolas", 11, FontStyle.Regular);
+        private readonly Font _cancelButtonFont = new Font("Consolas", 9, FontStyle.Bold);
+
+        // Fires after BBSStopDelay seconds to restore the main launcher window
+        private Timer? _bbsStopDelayTimer;
 
         public AppManagerForm(AutoLaunchManager autoLaunchManager, ConfigManager config)
         {
@@ -241,7 +260,7 @@ namespace MBBSLauncher.Forms
                     Location = new Point(5, yPos),
                     Size = new Size(nameW, labelH),
                     ForeColor = program.IsBBS ? Color.White : Color.LightGray,
-                    Font = new Font("Consolas", 11, FontStyle.Bold),
+                    Font = _boldFont,
                     BackColor = Color.FromArgb(0, 0, 128),
                     Tag = program
                 };
@@ -263,7 +282,7 @@ namespace MBBSLauncher.Forms
                     Location = new Point(statusX, yPos),
                     Size = new Size(statusW, labelH),
                     ForeColor = GetStatusColor(program.Status),
-                    Font = new Font("Consolas", 11, FontStyle.Regular),
+                    Font = _regularFont,
                     BackColor = Color.FromArgb(0, 0, 128),
                     TextAlign = ContentAlignment.MiddleLeft,
                     Tag = program
@@ -446,7 +465,7 @@ namespace MBBSLauncher.Forms
                     Size = new Size((int)(200 * sf), (int)(25 * sf)),
                     BackColor = Color.FromArgb(64, 64, 128),
                     ForeColor = Color.White,
-                    Font = new Font("Consolas", 9, FontStyle.Bold),
+                    Font = _cancelButtonFont,
                     FlatStyle = FlatStyle.Flat,
                     Cursor = Cursors.Hand
                 };
@@ -578,10 +597,10 @@ namespace MBBSLauncher.Forms
                     program.Status = ProgramStatus.Stopped;
                     UpdateStatusLabel(program);
 
-                    // If BBS stopped, restore main window
+                    // If BBS stopped, start the configurable restore delay
                     if (program.IsBBS)
                     {
-                        OnBBSCrashed();
+                        StartBBSStopDelay();
                     }
                 }
                 // Update running status
@@ -589,32 +608,75 @@ namespace MBBSLauncher.Forms
                 {
                     program.Status = ProgramStatus.Running;
                     UpdateStatusLabel(program);
+
+                    // BBS restarted during cleanup window — cancel the pending restore
+                    if (program.IsBBS)
+                    {
+                        CancelBBSStopDelay();
+                    }
                 }
                 else if (program.Status != ProgramStatus.Pending && !isRunning)
                 {
                     program.Status = ProgramStatus.Stopped;
                     UpdateStatusLabel(program);
                 }
-
-                // Track BBS running state
-                if (program.IsBBS)
-                {
-                    _bbsWasRunning = (program.Status == ProgramStatus.Running);
-                }
             }
         }
 
         /// <summary>
-        /// Called when BBS crashes.
+        /// Starts the post-BBS-stop delay timer before restoring the main launcher window.
+        /// BBSStopDelay=0 restores immediately. Any positive value waits that many seconds,
+        /// which lets cleanup/restart sequences complete without the launcher popping up.
         /// </summary>
-        private void OnBBSCrashed()
+        private void StartBBSStopDelay()
+        {
+            int delaySeconds = _config.GetInt("Settings", "BBSStopDelay", 0);
+
+            if (delaySeconds <= 0)
+            {
+                // No delay configured — restore immediately
+                OnBBSStopped();
+                return;
+            }
+
+            // Cancel any in-flight delay before starting a new one
+            CancelBBSStopDelay();
+
+            _bbsStopDelayTimer = new Timer { Interval = delaySeconds * 1000 };
+            _bbsStopDelayTimer.Tick += (s, e) =>
+            {
+                _bbsStopDelayTimer?.Stop();
+                _bbsStopDelayTimer?.Dispose();
+                _bbsStopDelayTimer = null;
+                OnBBSStopped();
+            };
+            _bbsStopDelayTimer.Start();
+        }
+
+        /// <summary>
+        /// Cancels the pending restore delay (called when BBS restarts during the window).
+        /// </summary>
+        private void CancelBBSStopDelay()
+        {
+            if (_bbsStopDelayTimer != null)
+            {
+                _bbsStopDelayTimer.Stop();
+                _bbsStopDelayTimer.Dispose();
+                _bbsStopDelayTimer = null;
+            }
+        }
+
+        /// <summary>
+        /// Called when the BBS has stopped and the restore delay (if any) has elapsed.
+        /// </summary>
+        private void OnBBSStopped()
         {
             // Fire event to restore main launcher window
             BBSCrashed?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
-        /// Event fired when BBS crashes.
+        /// Event fired when BBS stops (after BBSStopDelay has elapsed).
         /// </summary>
         public event EventHandler? BBSCrashed;
 
@@ -625,6 +687,8 @@ namespace MBBSLauncher.Forms
         {
             base.Show();
             this.BringToFront();
+            // Timer runs continuously (never stopped on hide) so only start it if somehow not running.
+            if (!_updateTimer.Enabled) _updateTimer.Start();
             InitializePrograms();
             UpdateDisplay();
         }
@@ -646,16 +710,26 @@ namespace MBBSLauncher.Forms
         }
 
         /// <summary>
-        /// Form closing - save settings.
+        /// Form closing - save settings and clean up resources.
         /// </summary>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            // Don't actually close, just hide
+            // Don't actually close on user X click, just hide
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
+                CancelBBSStopDelay(); // prevent stale timer from restoring launcher after hide
                 this.Hide();
+                SaveSettings();
+                return;
             }
+
+            // Application is actually shutting down — clean up
+            CancelBBSStopDelay();
+            _updateTimer.Stop();
+            _boldFont.Dispose();
+            _regularFont.Dispose();
+            _cancelButtonFont.Dispose();
 
             SaveSettings();
             base.OnFormClosing(e);

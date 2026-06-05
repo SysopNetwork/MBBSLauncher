@@ -1,9 +1,9 @@
 // MBBSLauncher - Configuration Editor Form (v1.5 Redesign)
 // Created by Mark Laudenbach with Love in Iowa
-// https://github.com/laudenbachm/MBBS-Launcher
+// https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Forms/ConfigEditorForm.cs
-// Version: v1.60
+// Version: v1.85
 //
 // Change History:
 // 26.01.07.1 - 06:00PM - Initial creation
@@ -13,6 +13,8 @@
 // 26.02.19.1 - v1.60: Column sizing on Auto-Launch tab; Auto-Start label height fix;
 //              Advanced tab: removed duplicate GitHub URL, added Support section;
 //              LoadConfiguration: default AutoLaunchAtStartup checkbox for new installs
+// 26.06.04.1 - v1.85: Fixed CreateSectionLabel — separator Label was created but never added
+//              to the parent tab; all section divider lines were invisible in the Config Editor
 
 using System;
 using System.Drawing;
@@ -42,6 +44,7 @@ namespace MBBSLauncher.Forms
         private CheckBox? _autoStartBBSCheckBox;
         private NumericUpDown? _autoStartDelayNumeric;
         private CheckBox? _quietModeCheckBox;
+        private NumericUpDown? _bssStopDelayNumeric;
 
         public ConfigEditorForm(ConfigManager config)
         {
@@ -105,7 +108,7 @@ namespace MBBSLauncher.Forms
 
             Label authorLabel = new Label
             {
-                Text = $"Created with Love \u2764 by {Program.AUTHOR} in Iowa",
+                Text = $"Created with Love \u2764 by {Program.AUTHOR} in Iowa, USA.",
                 Location = new Point(15, 62),
                 Size = new Size(450, 22),
                 Font = new Font("Segoe UI", 9.5f),
@@ -162,8 +165,7 @@ namespace MBBSLauncher.Forms
             int y = 20;
 
             // BBS Installation section
-            var lblSection1 = CreateSectionLabel("BBS Installation", y);
-            tab.Controls.Add(lblSection1);
+            CreateSectionLabel("BBS Installation", y, tab);
             y += 30;
 
             var lblBBSPath = new Label { Text = "BBS Path:", Location = new Point(20, y), Size = new Size(100, 20) };
@@ -178,8 +180,7 @@ namespace MBBSLauncher.Forms
             y += 40;
 
             // Startup Behavior section
-            var lblSection2 = CreateSectionLabel("Startup Behavior", y);
-            tab.Controls.Add(lblSection2);
+            CreateSectionLabel("Startup Behavior", y, tab);
             y += 30;
 
             _autoLaunchCheckBox = new CheckBox
@@ -192,8 +193,7 @@ namespace MBBSLauncher.Forms
             y += 40;
 
             // System Tray Behavior section
-            var lblSection3 = CreateSectionLabel("System Tray Behavior", y);
-            tab.Controls.Add(lblSection3);
+            CreateSectionLabel("System Tray Behavior", y, tab);
             y += 30;
 
             _showTrayIconCheckBox = new CheckBox
@@ -224,8 +224,7 @@ namespace MBBSLauncher.Forms
             y += 40;
 
             // Keyboard Shortcuts section
-            var lblSection4 = CreateSectionLabel("Keyboard Shortcuts", y);
-            tab.Controls.Add(lblSection4);
+            CreateSectionLabel("Keyboard Shortcuts", y, tab);
             y += 30;
 
             string shortcuts = "• F1  - Help\n• F2  - Enable/Disable Modules\n• F12 - Configuration\n• ESC - Minimize or Exit\n• 0-9, 99 - Launch menu options";
@@ -395,8 +394,7 @@ namespace MBBSLauncher.Forms
             int y = 20;
 
             // Auto-Start BBS section
-            var lblSection1 = CreateSectionLabel("Auto-Start BBS", y);
-            tab.Controls.Add(lblSection1);
+            CreateSectionLabel("Auto-Start BBS", y, tab);
             y += 30;
 
             _autoStartBBSCheckBox = new CheckBox
@@ -453,6 +451,50 @@ namespace MBBSLauncher.Forms
                 ForeColor = Color.FromArgb(100, 100, 100)
             };
             tab.Controls.Add(lblInfo1);
+            y += 55;
+
+            // BBS Stop / Cleanup delay section
+            CreateSectionLabel("BBS Stop Delay (Cleanup)", y, tab);
+            y += 30;
+
+            var lblStopDelay = new Label
+            {
+                Text = "Delay after BBS stops:",
+                Location = new Point(40, y),
+                Size = new Size(160, 20)
+            };
+            tab.Controls.Add(lblStopDelay);
+
+            _bssStopDelayNumeric = new NumericUpDown
+            {
+                Location = new Point(205, y),
+                Size = new Size(60, 20),
+                Minimum = 0,
+                Maximum = 600,
+                Value = 0
+            };
+            tab.Controls.Add(_bssStopDelayNumeric);
+
+            var lblStopSeconds = new Label
+            {
+                Text = "seconds (0 = show immediately)",
+                Location = new Point(270, y),
+                Size = new Size(230, 20)
+            };
+            tab.Controls.Add(lblStopSeconds);
+            y += 30;
+
+            var lblInfo2 = new Label
+            {
+                Text = "ℹ Set this to match your BBS cleanup/shutdown time so the launcher\n" +
+                       "  does not pop up while cleanup scripts and programs are still running.\n" +
+                       "  The delay is automatically cancelled if the BBS restarts during this window.",
+                Location = new Point(20, y),
+                Size = new Size(650, 55),
+                Font = new Font("Segoe UI", 9),
+                ForeColor = Color.FromArgb(100, 100, 100)
+            };
+            tab.Controls.Add(lblInfo2);
         }
 
         private void CreateAutoLaunchTab()
@@ -463,8 +505,7 @@ namespace MBBSLauncher.Forms
             int y = 20;
 
             // Section header
-            var lblSection = CreateSectionLabel("Auto-Launch Programs After BBS Starts", y);
-            tab.Controls.Add(lblSection);
+            CreateSectionLabel("Auto-Launch Programs After BBS Starts", y, tab);
             y += 30;
 
             var lblDescription = new Label
@@ -630,8 +671,7 @@ namespace MBBSLauncher.Forms
 
             int y = 20;
 
-            var lblSection1 = CreateSectionLabel("Window Settings", y);
-            tab.Controls.Add(lblSection1);
+            CreateSectionLabel("Window Settings", y, tab);
             y += 30;
 
             var lblWindowInfo = new Label
@@ -646,14 +686,13 @@ namespace MBBSLauncher.Forms
             tab.Controls.Add(lblWindowInfo);
             y += 70;
 
-            var lblSection2 = CreateSectionLabel("About", y);
-            tab.Controls.Add(lblSection2);
+            CreateSectionLabel("About", y, tab);
             y += 30;
 
             var lblAbout = new Label
             {
                 Text = $"{Program.APP_NAME} {Program.APP_VERSION}\n" +
-                       $"Created by {Program.AUTHOR} with Love \u2764 in Iowa\n\n" +
+                       $"Created by {Program.AUTHOR} with Love \u2764 in Iowa, USA.\n\n" +
                        ".NET Runtime: 8.0 (self-contained)\n" +
                        "Architecture: x86 (32-bit)\n" +
                        "Zero external dependencies!",
@@ -665,43 +704,82 @@ namespace MBBSLauncher.Forms
             y += 130;
 
             // Support section
-            var lblSection3 = CreateSectionLabel("Support", y);
-            tab.Controls.Add(lblSection3);
+            CreateSectionLabel("Support", y, tab);
             y += 30;
 
             var lblSupportInfo = new Label
             {
-                Text = "Questions, feedback, or need help? Visit our community discussions:",
+                Text = "Questions, feedback, or need help? Join our community:",
                 Location = new Point(20, y),
                 Size = new Size(650, 20),
                 Font = new Font("Segoe UI", 9)
             };
             tab.Controls.Add(lblSupportInfo);
-            y += 22;
+            y += 26;
 
-            var supportLink = new LinkLabel
+            var lblDiscord = new Label
             {
-                Text = "https://github.com/laudenbachm/MBBS-Launcher/discussions",
+                Text = "Sysop Network Discord:",
                 Location = new Point(20, y),
-                Size = new Size(650, 20),
+                Size = new Size(170, 20),
+                Font = new Font("Segoe UI", 9)
+            };
+            tab.Controls.Add(lblDiscord);
+
+            var discordLink = new LinkLabel
+            {
+                Text = Program.DISCORD_URL,
+                Location = new Point(195, y),
+                Size = new Size(450, 20),
                 LinkColor = Color.FromArgb(0, 102, 204)
             };
-            supportLink.LinkClicked += (s, e) =>
+            discordLink.LinkClicked += (s, e) =>
             {
                 try
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
-                        FileName = "https://github.com/laudenbachm/MBBS-Launcher/discussions",
+                        FileName = Program.DISCORD_URL,
                         UseShellExecute = true
                     });
                 }
                 catch { }
             };
-            tab.Controls.Add(supportLink);
+            tab.Controls.Add(discordLink);
+            y += 26;
+
+            var lblGitHub = new Label
+            {
+                Text = "GitHub:",
+                Location = new Point(20, y),
+                Size = new Size(170, 20),
+                Font = new Font("Segoe UI", 9)
+            };
+            tab.Controls.Add(lblGitHub);
+
+            var githubSupportLink = new LinkLabel
+            {
+                Text = Program.GITHUB_URL,
+                Location = new Point(195, y),
+                Size = new Size(450, 20),
+                LinkColor = Color.FromArgb(0, 102, 204)
+            };
+            githubSupportLink.LinkClicked += (s, e) =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = Program.GITHUB_URL,
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
+            tab.Controls.Add(githubSupportLink);
         }
 
-        private Label CreateSectionLabel(string text, int y)
+        private void CreateSectionLabel(string text, int y, Control parent)
         {
             var label = new Label
             {
@@ -718,7 +796,8 @@ namespace MBBSLauncher.Forms
                 BorderStyle = BorderStyle.Fixed3D
             };
 
-            return label;
+            parent.Controls.Add(label);
+            parent.Controls.Add(line);
         }
 
         private void LoadConfiguration()
@@ -775,6 +854,12 @@ namespace MBBSLauncher.Forms
 
             if (_quietModeCheckBox != null)
                 _quietModeCheckBox.Checked = _config.GetValue("Settings", "QuietMode", "false") == "true";
+
+            if (_bssStopDelayNumeric != null)
+            {
+                if (int.TryParse(_config.GetValue("Settings", "BBSStopDelay", "0"), out int stopDelay))
+                    _bssStopDelayNumeric.Value = Math.Max(0, Math.Min(600, stopDelay));
+            }
         }
 
         private void SaveButton_Click(object? sender, EventArgs e)
@@ -813,6 +898,9 @@ namespace MBBSLauncher.Forms
 
             if (_quietModeCheckBox != null)
                 _config.SetValue("Settings", "QuietMode", _quietModeCheckBox.Checked.ToString().ToLower());
+
+            if (_bssStopDelayNumeric != null)
+                _config.SetValue("Settings", "BBSStopDelay", ((int)_bssStopDelayNumeric.Value).ToString());
 
             // Save Auto-Launch programs
             var autoLaunchGrid = FindAutoLaunchGrid();
@@ -868,7 +956,7 @@ namespace MBBSLauncher.Forms
             {
                 using (var dialog = new OpenFileDialog())
                 {
-                    dialog.Filter = "Executable Files (*.exe)|*.exe|All Files (*.*)|*.*";
+                    dialog.Filter = "Programs (*.exe;*.bat)|*.exe;*.bat|Executable Files (*.exe)|*.exe|Batch Files (*.bat)|*.bat|All Files (*.*)|*.*";
                     dialog.Title = "Select Program";
 
                     if (!string.IsNullOrEmpty(textBox.Text))
