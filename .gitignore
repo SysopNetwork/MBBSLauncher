@@ -1,0 +1,26 @@
+# Build output
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Release builds (uploaded as GitHub release assets, not committed)
+RELEASES/
+
+# Reference source — do not commit
+OLD CLAUDE PROJECT/
+
+# Personal notes
+Marks Notes/
+
+# Fireworks/design tool source files
+*.fw.png
+
+# AI tool guidance and local settings (local only)
+CLAUDE.md
+.claude/

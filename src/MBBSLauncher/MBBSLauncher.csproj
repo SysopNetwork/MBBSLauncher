@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+    <AssemblyName>MBBSLauncher</AssemblyName>
+    <RootNamespace>MBBSLauncher</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- Version Information -->
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>MBBSLauncher</Product>
+    <Company>Mark Laudenbach</Company>
+    <Copyright>Copyright © 2026 Mark Laudenbach - Created with Love in Iowa, USA.</Copyright>
+    <Description>A launcher application for The Major BBS Version 10</Description>
+
+    <!-- 32-bit configuration -->
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+
+    <!-- Application Manifest (v1.6 - Run as Administrator) -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Self-Contained Deployment (v1.5) -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfContained>true</IncludeNativeLibrariesForSelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Embed all resources into the assembly for single-file deployment -->
+    <EmbeddedResource Include="Resources\background.png">
+      <LogicalName>MBBSLauncher.Resources.background.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\icon.png">
+      <LogicalName>MBBSLauncher.Resources.icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\icon.ico">
+      <LogicalName>MBBSLauncher.Resources.icon.ico</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SNTICKLR module files — embedded directly in the exe so source and launcher version
+         are always in sync. Extracted at runtime via GetManifestResourceStream() when
+         installing into the BBS folder. LogicalName must match EmbeddedDllResource /
+         EmbeddedMdfResource constants in TicklerMonitor.cs. -->
+    <EmbeddedResource Include="MBBS Module\SNTICKLR.DLL">
+      <LogicalName>MBBSLauncher.SNTICKLR.DLL</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MBBS Module\SNTICKLR.MDF">
+      <LogicalName>MBBSLauncher.SNTICKLR.MDF</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Suppress .pdb from publish output — not intended for public distribution -->
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+</Project>
