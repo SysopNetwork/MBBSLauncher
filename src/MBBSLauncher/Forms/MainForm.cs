@@ -3,7 +3,7 @@
 // https://github.com/SysopNetwork/MBBSLauncher
 //
 // File: Forms/MainForm.cs
-// Version: v2.0-beta22
+// Version: v2.0.1
 //
 // Change History:
 // 26.01.07.1 - 06:00PM - Initial creation
@@ -87,6 +87,10 @@
 //                      started a SECOND BBS. It now refuses while the supervisor is up. The new
 //                      LaunchOption(silent:) parameter keeps that modal off unattended callers (monitor
 //                      recovery, auto-start countdown), which must never block on a message box.
+// 26.09.22.1 - v2.0.1: Fix MinimizeToTray never actually minimizing to the tray — it only set
+//                      WindowState=Minimized, leaving a taskbar icon behind (pre-dates v2.0; same bug
+//                      existed in the v1.85 codebase). Now also Hide()s and sets ShowInTaskbar=false,
+//                      matching what RestoreFromTray() already undoes (Show()/ShowInTaskbar=true).
 
 using System;
 using System.Drawing;
@@ -483,6 +487,8 @@ namespace MBBSLauncher.Forms
             if (minimizeToTray && _trayIcon != null && _trayIcon.Visible)
             {
                 this.WindowState = FormWindowState.Minimized;
+                this.Hide();
+                this.ShowInTaskbar = false;
 
                 // Show balloon tip on first minimize
                 if (_isFirstMinimizeToTray)

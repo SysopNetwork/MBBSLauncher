@@ -6,6 +6,14 @@ File-level change tracking uses the format `YY.MM.DD.X` in each source file head
 
 ---
 
+## [v2.0.1] — 2026-09-22
+
+### Fixed
+
+- **Minimize to tray did not minimize to tray** — `MinimizeToTray()` only set `WindowState=Minimized`, leaving a taskbar icon behind instead of hiding to the system tray. It now also hides the window and clears `ShowInTaskbar`, matching what `RestoreFromTray()` already undoes.
+
+---
+
 ## [v2.0] — 2026-07-30
 
 ### Added

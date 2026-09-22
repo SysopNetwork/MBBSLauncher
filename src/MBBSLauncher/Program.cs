@@ -86,6 +86,9 @@
 //                      change from the final beta. APP_VERSION drives the window titles, the About
 //                      panel, the audit.log build tag (now "[v2]") and the update check, so this
 //                      constant and <Version> in MBBSLauncher.csproj must always move together.
+// 26.09.22.1 - v2.0.1 - Bugfix release. MainForm.MinimizeToTray() only set WindowState=Minimized and
+//                      never removed the taskbar icon (ShowInTaskbar/Hide()), so "minimize to tray"
+//                      was really just a normal minimize. See Forms/MainForm.cs for the fix.
 
 using System;
 using System.IO;
@@ -97,7 +100,7 @@ namespace MBBSLauncher
 {
     internal static class Program
     {
-        public const string APP_VERSION = "v2.0";
+        public const string APP_VERSION = "v2.0.1";
 
         /// <summary>
         /// Compact form of APP_VERSION used as a per-line tag in audit.log so a glance at any event
