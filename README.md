@@ -256,6 +256,13 @@ Full detail is in [CHANGELOG.md](CHANGELOG.md). Release history for v1.x is arch
 
 ---
 
+## Tips / Donations
+
+- **Cash App:** [$laudenbachm](https://cash.app/$laudenbachm)
+- **Ko-fi:** [ko-fi.com/laudenbachm](https://ko-fi.com/laudenbachm)
+
+---
+
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
